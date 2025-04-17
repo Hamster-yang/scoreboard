@@ -4,64 +4,151 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>排球計分操控面板</title>
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
   <style>
-    body { display:flex; flex-direction:column; align-items:center; font-family: sans-serif; padding:20px; }
-    button { width: 120px; height: 50px; margin: 5px; font-size: 1.2em; }
-    .row { display:flex; }
+    body { font-family:sans-serif; padding:20px; display:flex; flex-direction:column; align-items:center; }
+    .info { margin-bottom:20px; font-size:1.2em; }
+    button { width:120px; height:50px; margin:5px; font-size:1.1em; }
+    .row { display:flex; gap:10px; margin-bottom:10px; }
+    hr { width:100%; margin:15px 0; }
   </style>
 </head>
 <body>
   <h1>排球計分操控面板</h1>
 
-  <div class="row">
-    <button onclick="change('redScore', 1)">紅＋</button>
-    <button onclick="change('redScore', -1)">紅－</button>
-  </div>
-  <div class="row">
-    <button onclick="change('blueScore', 1)">藍＋</button>
-    <button onclick="change('blueScore', -1)">藍－</button>
-  </div>
-  <hr style="width:80%; margin:20px 0;">
-  <div class="row">
-    <button onclick="change('setNumber', 1)">局＋</button>
-    <button onclick="change('setNumber', -1)">局－</button>
+  <!-- 即時顯示目前狀態 -->
+  <div class="info">
+    分數：紅 <span id="curRedScore">0</span> - 藍 <span id="curBlueScore">0</span><br>
+    勝局：紅 <span id="curRedSets">0</span> - 藍 <span id="curBlueSets">0</span><br>
+    位置：<span id="curSwapped">正常</span>
   </div>
 
-  <script  type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
+  <!-- 分數增減 -->
+  <div class="row">
+    <button onclick="op('redScore',  1)">紅＋</button>
+    <button onclick="op('redScore', -1)">紅－</button>
+    <button onclick="op('blueScore',  1)">藍＋</button>
+    <button onclick="op('blueScore', -1)">藍－</button>
+  </div>
 
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  <!-- 勝局增減 -->
+  <div class="row">
+    <button onclick="op('redSets',  1)">紅局＋</button>
+    <button onclick="op('redSets', -1)">紅局－</button>
+    <button onclick="op('blueSets',  1)">藍局＋</button>
+    <button onclick="op('blueSets', -1)">藍局－</button>
+  </div>
+
+  <hr>
+
+  <!-- 換邊 / 清除 / 重置 / 回上一部 -->
+  <div class="row">
+    <button onclick="swapSides()">換邊</button>
+    <button onclick="clearScore()">清本局</button>
+    <button onclick="resetAll()">全部重置</button>
+    <button onclick="undo()" id="undoBtn" disabled>回上一部</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp }         from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import {
+      getDatabase, ref, onValue,
+      runTransaction, get, set
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyBwEYd-1o36ny0DWhFkauDQ51WSlEwuuz8",
       authDomain: "scoreboard-2c62f.firebaseapp.com",
+      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "scoreboard-2c62f",
-      storageBucket: "scoreboard-2c62f.firebasestorage.app",
+      storageBucket: "scoreboard-2c62f.appspot.com",
       messagingSenderId: "312894426827",
       appId: "1:312894426827:web:deacf33a7c1d2781b1554e",
-      measurementId: "G-88W8QGFQNV",
-      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app/"
+      measurementId: "G-88W8QGFQNV"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
 
-    // 變更分數或局數的函式
-    function change(key, delta) {
-      const nodeRef = ref(db, key);
-      runTransaction(nodeRef, current => {
-        const v = (current ?? 0) + delta;
-        return v < 0 ? 0 : v;
+    // 歷史堆疊，用於「回上一部」
+    const history = [];
+
+    // 欄位清單
+    const keys = ['redScore','blueScore','redSets','blueSets','swapped'];
+
+    // 每次操作前 snapshot 並 push 到 history
+    async function snapshot() {
+      const snaps = await Promise.all(keys.map(k => get(ref(db, k))));
+      const state = {};
+      keys.forEach((k,i) => state[k] = snaps[i].val() ?? (k==='swapped'?false:0));
+      history.push(state);
+      document.getElementById('undoBtn').disabled = false;
+    }
+
+    // 泛用 transaction 操作
+    async function op(key, delta) {
+      await snapshot();
+      const node = ref(db, key);
+      return runTransaction(node, cur => {
+        const v = (cur ?? 0) + delta;
+        return (key==='swapped') ? !cur : v < 0 ? 0 : v;
       });
     }
-    window.change = change;
+    window.op = op;
+
+    // 換邊：互換值並切換 swapped flag
+    async function swapSides() {
+      await snapshot();
+      const snaps = await Promise.all(keys.map(k => get(ref(db,k))));
+      const vals  = snaps.map(s=> s.val() ?? (s.key==='swapped'?false:0));
+
+      // 0↔1, 2↔3, swapped 取反
+      await Promise.all([
+        set(ref(db,'redScore'),  vals[1]),
+        set(ref(db,'blueScore'), vals[0]),
+        set(ref(db,'redSets'),   vals[3]),
+        set(ref(db,'blueSets'),  vals[2]),
+        set(ref(db,'swapped'),   !vals[4])
+      ]);
+    }
+    window.swapSides = swapSides;
+
+    // 清空本局分數
+    async function clearScore() {
+      await snapshot();
+      await Promise.all([
+        set(ref(db,'redScore'), 0),
+        set(ref(db,'blueScore'),0)
+      ]);
+    }
+    window.clearScore = clearScore;
+
+    // 全部重置
+    async function resetAll() {
+      await snapshot();
+      await Promise.all(keys.map(k=>{
+        const val = (k==='swapped'?false:0);
+        return set(ref(db,k), val);
+      }));
+    }
+    window.resetAll = resetAll;
+
+    // 回上一部
+    async function undo() {
+      if (!history.length) return;
+      const prev = history.pop();
+      await Promise.all(Object.entries(prev).map(([k,v]) => set(ref(db,k), v)));
+      if (!history.length) document.getElementById('undoBtn').disabled = true;
+    }
+    window.undo = undo;
+
+    // 即時顯示控制面板上的數值 & 位置文字
+    onValue(ref(db,'redScore'),  s=> document.getElementById('curRedScore').textContent  = s.val() ?? 0);
+    onValue(ref(db,'blueScore'), s=> document.getElementById('curBlueScore').textContent = s.val() ?? 0);
+    onValue(ref(db,'redSets'),   s=> document.getElementById('curRedSets').textContent   = s.val() ?? 0);
+    onValue(ref(db,'blueSets'),  s=> document.getElementById('curBlueSets').textContent  = s.val() ?? 0);
+    onValue(ref(db,'swapped'),   s=> {
+      document.getElementById('curSwapped').textContent = s.val() ? '交換' : '正常';
+    });
   </script>
 </body>
 </html>

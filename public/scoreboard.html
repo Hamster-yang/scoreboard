@@ -4,68 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>排球計分看板</title>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
   <style>
-    body, html { margin:0; padding:0; height:100%; font-family: sans-serif; }
-    .container { display:flex; height:100%; }
+    body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
+    .container { display:flex; height:100%; transition: background 0.3s;}
     .team {
-      flex: 1; display:flex; flex-direction:column;
+      flex:1; display:flex; flex-direction:column;
       align-items:center; justify-content:center;
+      transition: background 0.3s;
     }
-    .red { background:#f44336; color:white; }
-    .blue { background:#2196f3; color:white; }
-    .score { font-size: 20vw; margin:0; }
-    .set { font-size: 5vw; margin:0; }
+    .red  { background:#f44336; color:#fff; }
+    .blue { background:#2196f3; color:#fff; }
+    .score { font-size:20vw; margin:0; }
+    .sets  { font-size:5vw; margin:0; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="team red">
+    <div class="team left red">
       <p id="redScore" class="score">0</p>
-      <p class="set">局數：<span id="setNumber">1</span></p>
+      <p class="sets">勝局：<span id="redSets">0</span></p>
     </div>
-    <div class="team blue">
+    <div class="team right blue">
       <p id="blueScore" class="score">0</p>
-      <p class="set">局數：<span id="setNumber2">1</span></p>
+      <p class="sets">勝局：<span id="blueSets">0</span></p>
     </div>
   </div>
 
   <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
+    import { initializeApp }              from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getDatabase, ref, onValue }  from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
       apiKey: "AIzaSyBwEYd-1o36ny0DWhFkauDQ51WSlEwuuz8",
       authDomain: "scoreboard-2c62f.firebaseapp.com",
+      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "scoreboard-2c62f",
-      storageBucket: "scoreboard-2c62f.firebasestorage.app",
+      storageBucket: "scoreboard-2c62f.appspot.com",
       messagingSenderId: "312894426827",
       appId: "1:312894426827:web:deacf33a7c1d2781b1554e",
-      measurementId: "G-88W8QGFQNV",
-      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app/"
+      measurementId: "G-88W8QGFQNV"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
 
-    onValue(ref(db, 'redScore'), snap => {
-      document.getElementById('redScore').textContent = snap.val() ?? 0;
-    });
-    onValue(ref(db, 'blueScore'), snap => {
-      document.getElementById('blueScore').textContent = snap.val() ?? 0;
-    });
-    onValue(ref(db, 'setNumber'), snap => {
-      const v = snap.val() ?? 1;
-      document.getElementById('setNumber').textContent  = v;
-      document.getElementById('setNumber2').textContent = v;
+    // 更新分數與勝局
+    onValue(ref(db, 'redScore'),   s=> document.getElementById('redScore').textContent = s.val()   ?? 0);
+    onValue(ref(db, 'blueScore'),  s=> document.getElementById('blueScore').textContent = s.val()  ?? 0);
+    onValue(ref(db, 'redSets'),    s=> document.getElementById('redSets').textContent  = s.val()    ?? 0);
+    onValue(ref(db, 'blueSets'),   s=> document.getElementById('blueSets').textContent = s.val()   ?? 0);
+
+    // 監聽 swapped flag，動態切換顏色
+    onValue(ref(db, 'swapped'), snap => {
+      const swapped = snap.val() ?? false;
+      const leftEl  = document.querySelector('.team.left');
+      const rightEl = document.querySelector('.team.right');
+      if (swapped) {
+        leftEl.classList.replace('red','blue');
+        rightEl.classList.replace('blue','red');
+      } else {
+        leftEl.classList.replace('blue','red');
+        rightEl.classList.replace('red','blue');
+      }
     });
   </script>
 </body>
