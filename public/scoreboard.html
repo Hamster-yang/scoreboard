@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "firebase/app";
     import { getAnalytics } from "firebase/analytics";
@@ -55,16 +55,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 2. 監聽資料庫變動
-    db.ref('redScore').on('value', snap => {
+    onValue(ref(db, 'redScore'), snap => {
       document.getElementById('redScore').textContent = snap.val() ?? 0;
     });
-    db.ref('blueScore').on('value', snap => {
+    onValue(ref(db, 'blueScore'), snap => {
       document.getElementById('blueScore').textContent = snap.val() ?? 0;
     });
-    db.ref('setNumber').on('value', snap => {
+    onValue(ref(db, 'setNumber'), snap => {
       const v = snap.val() ?? 1;
-      document.getElementById('setNumber').textContent = v;
+      document.getElementById('setNumber').textContent  = v;
       document.getElementById('setNumber2').textContent = v;
     });
   </script>

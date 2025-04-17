@@ -29,7 +29,7 @@
     <button onclick="change('setNumber', -1)">局－</button>
   </div>
 
-  <script>
+  <script  type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "firebase/app";
     import { getAnalytics } from "firebase/analytics";
@@ -61,6 +61,7 @@
         return v;
       });
     }
+    window.change = change;
   </script>
 </body>
 </html>
