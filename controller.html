@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>排球計分操控面板</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body { display:flex; flex-direction:column; align-items:center; font-family: sans-serif; padding:20px; }
+    button { width: 120px; height: 50px; margin: 5px; font-size: 1.2em; }
+    .row { display:flex; }
+  </style>
+</head>
+<body>
+  <h1>排球計分操控面板</h1>
+
+  <div class="row">
+    <button onclick="change('redScore', 1)">紅＋</button>
+    <button onclick="change('redScore', -1)">紅－</button>
+  </div>
+  <div class="row">
+    <button onclick="change('blueScore', 1)">藍＋</button>
+    <button onclick="change('blueScore', -1)">藍－</button>
+  </div>
+  <hr style="width:80%; margin:20px 0;">
+  <div class="row">
+    <button onclick="change('setNumber', 1)">局＋</button>
+    <button onclick="change('setNumber', -1)">局－</button>
+  </div>
+
+  <script>
+    // 初始化 Firebase
+    const firebaseConfig = {
+      apiKey: "...", authDomain: "...",
+      databaseURL: "https://<YOUR_PROJECT>.firebaseio.com",
+      projectId: "...", storageBucket: "...",
+      messagingSenderId: "...", appId: "..."
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 變更分數或局數的函式
+    function change(key, delta) {
+      const ref = db.ref(key);
+      ref.transaction(current => {
+        let v = (current ?? 0) + delta;
+        if (v < 0) v = 0;            // 不允許負分／負局
+        return v;
+      });
+    }
+  </script>
+</body>
+</html>
