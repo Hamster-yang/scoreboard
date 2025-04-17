@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>排球計分看板</title>
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
   <style>
     body, html { margin:0; padding:0; height:100%; font-family: sans-serif; }
     .container { display:flex; height:100%; }
@@ -35,7 +35,7 @@
   <script type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -48,7 +48,8 @@
       storageBucket: "scoreboard-2c62f.firebasestorage.app",
       messagingSenderId: "312894426827",
       appId: "1:312894426827:web:deacf33a7c1d2781b1554e",
-      measurementId: "G-88W8QGFQNV"
+      measurementId: "G-88W8QGFQNV",
+      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
 
     // Initialize Firebase

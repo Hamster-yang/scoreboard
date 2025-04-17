@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>排球計分操控面板</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
   <style>
     body { display:flex; flex-direction:column; align-items:center; font-family: sans-serif; padding:20px; }
     button { width: 120px; height: 50px; margin: 5px; font-size: 1.2em; }
@@ -32,7 +32,7 @@
   <script  type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -45,7 +45,8 @@
       storageBucket: "scoreboard-2c62f.firebasestorage.app",
       messagingSenderId: "312894426827",
       appId: "1:312894426827:web:deacf33a7c1d2781b1554e",
-      measurementId: "G-88W8QGFQNV"
+      measurementId: "G-88W8QGFQNV",
+      databaseURL: "https://scoreboard-2c62f-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
 
     // Initialize Firebase
@@ -54,11 +55,10 @@
 
     // 變更分數或局數的函式
     function change(key, delta) {
-      const ref = db.ref(key);
-      ref.transaction(current => {
-        let v = (current ?? 0) + delta;
-        if (v < 0) v = 0;            // 不允許負分／負局
-        return v;
+      const nodeRef = ref(db, key);
+      runTransaction(nodeRef, current => {
+        const v = (current ?? 0) + delta;
+        return v < 0 ? 0 : v;
       });
     }
     window.change = change;
