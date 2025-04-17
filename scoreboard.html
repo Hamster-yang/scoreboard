@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>排球計分看板</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body, html { margin:0; padding:0; height:100%; font-family: sans-serif; }
+    .container { display:flex; height:100%; }
+    .team {
+      flex: 1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+    }
+    .red { background:#f44336; color:white; }
+    .blue { background:#2196f3; color:white; }
+    .score { font-size: 20vw; margin:0; }
+    .set { font-size: 5vw; margin:0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="team red">
+      <p id="redScore" class="score">0</p>
+      <p class="set">局數：<span id="setNumber">1</span></p>
+    </div>
+    <div class="team blue">
+      <p id="blueScore" class="score">0</p>
+      <p class="set">局數：<span id="setNumber2">1</span></p>
+    </div>
+  </div>
+
+  <script>
+    // 1. 初始化 Firebase
+    const firebaseConfig = {
+      apiKey: "...", authDomain: "...",
+      databaseURL: "https://<YOUR_PROJECT>.firebaseio.com",
+      projectId: "...", storageBucket: "...",
+      messagingSenderId: "...", appId: "..."
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. 監聽資料庫變動
+    db.ref('redScore').on('value', snap => {
+      document.getElementById('redScore').textContent = snap.val() ?? 0;
+    });
+    db.ref('blueScore').on('value', snap => {
+      document.getElementById('blueScore').textContent = snap.val() ?? 0;
+    });
+    db.ref('setNumber').on('value', snap => {
+      const v = snap.val() ?? 1;
+      document.getElementById('setNumber').textContent = v;
+      document.getElementById('setNumber2').textContent = v;
+    });
+  </script>
+</body>
+</html>
